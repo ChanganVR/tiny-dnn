@@ -203,3 +203,5 @@ docs/_build
 *.pb.h
 CMakeFiles*
 build*
+.idea/ 
+cmake-build-debug/

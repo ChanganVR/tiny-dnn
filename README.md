@@ -1,15 +1,26 @@
-<div align="center">
-  <img src="https://github.com/tiny-dnn/tiny-dnn/blob/master/docs/logo/TinyDNN-logo-letters-alpha-version.png"><br><br>
-</div>
------------------
+# Hardware guided network pruning
+## To-do list
+0. prepare some networks(Alexnet, ...) with their trained weights and
+test its accuracy on validation set(caffe_converter fails)
+1. implement unstructured pruning in tidy-dnn (before Jan 16)
+* take pruning percentage as input parameter
+* modify the layers for forwarding/backwarding
+* test pruned network accuracy with small pruning percentage,
+and there should not be a big drop in accuracy
+2. migrate sparse matrix multiplication into tiny-dnn (before Jan 23)
+* search for which library should be used (libxsmm)
+* modify conv/fc layers with the library in a.
+* test performance improvement with pruned network in 1
+3. run bayesian optimization for pruning (before Jan 30)
 
-[![Join the chat at https://gitter.im/tiny-dnn/users](https://badges.gitter.im/tiny-dnn/users.svg)](https://gitter.im/tiny-dnn/users) [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://tiny-dnn.readthedocs.io/) [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://raw.githubusercontent.com/tiny-dnn/tiny-dnn/master/LICENSE) [![Coverage Status](https://coveralls.io/repos/github/tiny-dnn/tiny-dnn/badge.svg?branch=master)](https://coveralls.io/github/tiny-dnn/tiny-dnn?branch=master)
 
-**tiny-dnn** is a C++14 implementation of deep learning. It is suitable for deep learning on limited computational resource, embedded systems and IoT devices.
 
-| **`Linux/Mac OS`** | **`Windows`** |
-|------------------|-------------|
-|[![Build Status](https://travis-ci.org/tiny-dnn/tiny-dnn.svg?branch=master)](https://travis-ci.org/tiny-dnn/tiny-dnn)|[![Build status](https://ci.appveyor.com/api/projects/status/a5syoifm8ct7b4l2?svg=true)](https://ci.appveyor.com/project/tinydnn/tiny-dnn)|
+
+
+
+
+**tiny-dnn** is a C++14 implementation of deep learning.
+It is suitable for deep learning on limited computational resource, embedded systems and IoT devices.
 
 ## Table of contents
 
