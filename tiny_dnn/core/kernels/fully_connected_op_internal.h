@@ -43,10 +43,13 @@ inline void fully_connected_op_internal(const tensor_t &prev_out,
                                         tensor_t &prev_delta,
                                         const core::fully_params &params,
                                         const bool layer_parallelize) {
+  // only gradients of weights and bias are calculated, no parameter update is made here
   for (size_t sample = 0; sample < prev_out.size(); sample++) {
     for (size_t c = 0; c < params.in_size_; c++) {
       // propagate delta to previous layer
       // prev_delta[c] += current_delta[r] * W_[c * out_size_ + r]
+      // delta is the derivative of error term(loss) with respect to activation, which is propagated to calculate the
+      // derivative wrt weights(gradient). prev_delta_of_activation_j = sum over k[next_delta_of_activation_k * weight_jk * derivative of activation j]
       prev_delta[sample][c] += vectorize::dot(
         &curr_delta[sample][0], &W[c * params.out_size_], params.out_size_);
     }
@@ -54,12 +57,13 @@ inline void fully_connected_op_internal(const tensor_t &prev_out,
     for_(layer_parallelize, 0, params.out_size_, [&](const blocked_range &r) {
       // accumulate weight-step using delta
       // dW[c * out_size + i] += current_delta[i] * prev_out[c]
+      // multiply delta by the neuron output to calculate the gradient, which is stored in dW
       for (size_t c = 0; c < params.in_size_; c++) {
         vectorize::muladd(&curr_delta[sample][r.begin()], prev_out[sample][c],
                           r.end() - r.begin(),
                           &dW[sample][c * params.out_size_ + r.begin()]);
       }
-
+      // the same, gradient of bias is stored in db
       if (params.has_bias_) {
         // vec_t& db = *in_grad[2];
         for (size_t i = r.begin(); i < r.end(); i++) {
