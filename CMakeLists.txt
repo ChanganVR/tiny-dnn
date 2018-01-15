@@ -58,6 +58,7 @@ option(USE_DOUBLE     "Build tiny-dnn with double precision computations"  OFF)
 option(USE_IMAGE_API  "Build tiny-dnn with Image API support"       ON)
 option(USE_GEMMLOWP   "Build tiny-dnn with gemmlowp support"       OFF)
 
+option(BUILD_EXPERIMENTS  "Set to ON to build experiments"      OFF)
 option(BUILD_TESTS      "Set to ON to build tests"              OFF)
 option(BUILD_EXAMPLES   "Set to ON to build examples"           OFF)
 option(BUILD_DOCS       "Set to ON to build documentation"      OFF)
@@ -393,6 +394,10 @@ endif(BUILD_DOCS)
 if(BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif(BUILD_BENCHMARKS)
+
+if(BUILD_EXPERIMENTS)
+    add_subdirectory(experiments)
+endif(BUILD_EXPERIMENTS)
 
 ####
 # Configuration summary
