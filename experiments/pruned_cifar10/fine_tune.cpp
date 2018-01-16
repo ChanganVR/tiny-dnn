@@ -1,9 +1,8 @@
 /*
-    Copyright (c) 2013, Taiga Nomi and the respective contributors
-    All rights reserved.
-
-    Use of this source code is governed by a BSD-style license that can be found
-    in the LICENSE file.
+   A fixed pruning percentage for layers and pretrained weights are inputs to the network.
+   Pseudo code:
+     1. test the pruned model on test set (accuracy drops)
+     2. iteratively train the model and test it on the test set (accuracy goes up, but lower than pretrained weights)
 */
 #include <cstdlib>
 #include <iostream>
@@ -12,10 +11,10 @@
 #include "tiny_dnn/tiny_dnn.h"
 
 template<typename N>
-void construct_net(N &nn, tiny_dnn::core::backend_t backend_type) {
+void construct_net(N &nn, tiny_dnn::core::backend_t backend_type, float pruning_percentage) {
     using conv    = tiny_dnn::convolutional_layer;
     using pool    = tiny_dnn::max_pooling_layer;
-    using fc      = tiny_dnn::fully_connected_layer;
+    using pfc     = tiny_dnn::pruned_fully_connected_layer;
     using relu    = tiny_dnn::relu_layer;
     using softmax = tiny_dnn::softmax_layer;
 
@@ -35,23 +34,27 @@ void construct_net(N &nn, tiny_dnn::core::backend_t backend_type) {
                backend_type)                                // C5
        << pool(8, 8, n_fmaps2, 2, backend_type)             // P6
        << relu()                                            // activation
-       << fc(4 * 4 * n_fmaps2, n_fc, true, backend_type)    // FC7
+       << pfc(4 * 4 * n_fmaps2, n_fc, true, backend_type, pruning_percentage)    // FC7
        << relu()                                            // activation
-       << fc(n_fc, 10, true, backend_type) << softmax(10);  // FC10
+       << pfc(n_fc, 10, true, backend_type, pruning_percentage) << softmax(10);  // FC10
 }
 
-void train_cifar10(std::string data_dir_path,
-                   double learning_rate,
-                   const int n_train_epochs,
-                   const int n_minibatch,
-                   tiny_dnn::core::backend_t backend_type,
-                   std::ostream &log) {
+void fine_tune_cifar10(std::string data_dir_path,
+                       double learning_rate,
+                       const int n_train_epochs,
+                       const int n_minibatch,
+                       tiny_dnn::core::backend_t backend_type,
+                       float pruning_percentage,
+                       std::string weights_path,
+                       std::ostream &log) {
     // specify loss-function and learning strategy
     tiny_dnn::network <tiny_dnn::sequential> nn;
     tiny_dnn::adam optimizer;
 
-    construct_net(nn, backend_type);
-
+    // construct net and load weights
+    construct_net(nn, backend_type, pruning_percentage);
+    std::ifstream ifs(weights_path.c_str());
+    ifs >> nn;
     std::cout << "load models..." << std::endl;
 
     // load cifar dataset
@@ -65,6 +68,9 @@ void train_cifar10(std::string data_dir_path,
 
     parse_cifar10(data_dir_path + "/test_batch.bin", &test_images, &test_labels,
                   -1.0, 1.0, 0, 0);
+
+    // test initial test accuracy
+    nn.test(test_images, test_labels).print_detail(std::cout);
 
     std::cout << "start learning" << std::endl;
 
@@ -117,18 +123,22 @@ static tiny_dnn::core::backend_t parse_backend_name(const std::string &name) {
 
 static void usage(const char *argv0) {
     std::cout << "Usage: " << argv0 << " --data_path path_to_dataset_folder"
+              << " --weights_path path_to_weights"
               << " --learning_rate 0.01"
-              << " --epochs 30"
+              << " --epochs 5"
               << " --minibatch_size 10"
-              << " --backend_type internal" << std::endl;
+              << " --backend_type internal"
+              << " --pruning_percentage 0.01" << std::endl;
 }
 
 int main(int argc, char **argv) {
     double learning_rate = 0.01;
-    int epochs = 30;
+    int epochs = 5;
     std::string data_path = "";
     int minibatch_size = 10;
     tiny_dnn::core::backend_t backend_type = tiny_dnn::core::default_engine();
+    double pruning_percentage = 0.01;
+    std::string weights_path = "";
 
     if (argc == 2) {
         std::string argname(argv[1]);
@@ -149,7 +159,12 @@ int main(int argc, char **argv) {
             backend_type = parse_backend_name(argv[count + 1]);
         } else if (argname == "--data_path") {
             data_path = std::string(argv[count + 1]);
-        } else {
+        } else if (argname == "--pruning_percentage") {
+            pruning_percentage = atof(argv[count + 1]);
+        } else if (argname == "--weights_path"){
+            weights_path = std::string(argv[count + 1]);
+        }
+        else{
             std::cerr << "Invalid parameter specified - \"" << argname << "\""
                       << std::endl;
             usage(argv[0]);
@@ -158,6 +173,11 @@ int main(int argc, char **argv) {
     }
     if (data_path == "") {
         std::cerr << "Data path not specified." << std::endl;
+        usage(argv[0]);
+        return -1;
+    }
+    if (weights_path == "") {
+        std::cerr << "Weights path not specified." << std::endl;
         usage(argv[0]);
         return -1;
     }
@@ -186,10 +206,12 @@ int main(int argc, char **argv) {
               << "Minibatch size: " << minibatch_size << std::endl
               << "Number of epochs: " << epochs << std::endl
               << "Backend type: " << backend_type << std::endl
+              << "Pruning percentage: " << pruning_percentage << std::endl
+              << "Weight path: " << weights_path << std::endl
               << std::endl;
     try {
-        train_cifar10(data_path, learning_rate, epochs, minibatch_size,
-                      backend_type, std::cout);
+        fine_tune_cifar10(data_path, learning_rate, epochs, minibatch_size,
+                          backend_type, pruning_percentage, weights_path, std::cout);
     } catch (tiny_dnn::nn_error &err) {
         std::cerr << "Exception: " << err.what() << std::endl;
     }

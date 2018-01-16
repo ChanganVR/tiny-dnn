@@ -1,7 +1,8 @@
 # Hardware guided network pruning
 ## To-do list
 0. prepare some networks(Alexnet, ...) with their trained weights and
-test its accuracy on validation set(caffe_converter fails)
+test its accuracy on validation set
+for Cifar example, see experiments/pruned_cifar10
 1. implement unstructured pruning in tidy-dnn (before Jan 16)
 * take pruning percentage as input parameter
 * modify the layers for forwarding/backwarding

@@ -20,4 +20,8 @@ add_executable(pruned_cifar10_test pruned_cifar10/test.cpp ${tiny_dnn_headers})
 target_link_libraries(pruned_cifar10_test
         ${project_library_target_name} ${REQUIRED_LIBRARIES})
 
-cotire(pruned_cifar10_train pruned_cifar10_test)
+add_executable(pruned_cifar10_fine_tune pruned_cifar10/fine_tune.cpp ${tiny_dnn_headers})
+target_link_libraries(pruned_cifar10_fine_tune
+        ${project_library_target_name} ${REQUIRED_LIBRARIES})
+
+cotire(pruned_cifar10_train pruned_cifar10_test pruned_cifar10_fine_tune)
