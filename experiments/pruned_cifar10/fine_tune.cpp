@@ -54,6 +54,11 @@ void fine_tune_cifar10(std::string data_dir_path,
     // construct net and load weights
     construct_net(nn, backend_type, pruning_percentage);
     std::ifstream ifs(weights_path.c_str());
+    if (ifs.peek() == std::ifstream::traits_type::eof())
+    {
+        std::cout << "Weights file doesn't exist." << std::endl;
+        return;
+    }
     ifs >> nn;
     std::cout << "load models..." << std::endl;
 
@@ -105,7 +110,7 @@ void fine_tune_cifar10(std::string data_dir_path,
     // test and show results
     nn.test(test_images, test_labels).print_detail(std::cout);
     // save networks
-    std::ofstream ofs("cifar-weights");
+    std::ofstream ofs("fine_tuned_cifar-weights");
     ofs << nn;
 }
 

@@ -83,6 +83,7 @@ public:
         // copy weights to masked_weights
         masked_weights_.reset(new tensor_t);
         masked_weights_->push_back(vec_t(weights));
+        // TODO: more efficient implementation using MM lib
         for (size_t k = 0; k < params_.in_size_ * params_.out_size_; k++) {
             (*masked_weights_)[0][k] = weights[k] * mask_[k];
         }
@@ -94,7 +95,7 @@ public:
             masked_in_data.push_back(in_data[2]);
 
         // forward fully connected op context
-        fwd_ctx_.set_in_out(masked_in_data, out_data);
+        fwd_ctx_.set_in_out(in_data, out_data);
         fwd_ctx_.setParallelize(layer::parallelize());
         fwd_ctx_.setEngine(layer::engine());
 
@@ -106,7 +107,7 @@ public:
                           const std::vector<tensor_t *> &out_data,
                           std::vector<tensor_t *> &out_grad,
                           std::vector<tensor_t *> &in_grad) override {
-        // in_grad is output vectors of this layer (delta wrt input activations, weight gradient, bias gradient)
+        // in_grad is output vectors of this layer (delta wrt input activations, weight gradient(dW), bias gradient(db))
         // see fully_connected_grad_op
         // replace in_data with masked weights
         std::vector < tensor_t * > masked_in_data;
@@ -116,7 +117,7 @@ public:
             masked_in_data.push_back(in_data[2]);
 
         // backward fully connected op context
-        bwd_ctx_.set_in_out(in_data, out_data, out_grad, in_grad);
+        bwd_ctx_.set_in_out(masked_in_data, out_data, out_grad, in_grad);
         bwd_ctx_.setParallelize(layer::parallelize());
         bwd_ctx_.setEngine(layer::engine());
 
@@ -125,7 +126,7 @@ public:
 
         // mask out weights gradient
         // weights update should be done by optimization procedure
-        tensor_t &dW = *out_grad[1];
+        tensor_t &dW = *in_grad[1];
         for (size_t k = 0; k < params_.in_size_ * params_.out_size_; k++) {
             dW[0][k] *= mask_[k];
         }
@@ -158,7 +159,7 @@ protected:
 
     void set_mask(const vec_t &weights) {
         size_t num_weights = params_.in_size_ * params_.out_size_;
-        std::vector <std::pair<float_t, int>> indexed_weights;
+        std::vector <std::pair<float_t, size_t>> indexed_weights;
         for (size_t k = 0; k < num_weights; k++) {
             indexed_weights.push_back(std::make_pair(std::abs(weights[k]), k));
             mask_.push_back(true);

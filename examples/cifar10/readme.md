@@ -12,7 +12,7 @@ The accuracy of pretrained weights is 70.11%
 ## fine tune pruned network
 ./build/experiments/pruned_cifar10_fine_tune \
 --data_path /local-scratch/changan-home/dataset/cifar-10-batches-bin \
---weights_path cifar_weights \
+--weights_path cifar-weights \
 --learning_rate 0.01 \
 --epochs 2 \
 --minibatch_size 10 \
